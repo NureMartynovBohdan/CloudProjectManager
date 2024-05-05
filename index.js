@@ -10,7 +10,6 @@
 
 // const result = await users.insertOne(newUser);
 // console.log(`New user created with the following id: ${result.insertedId}`);
-
 const express = require("express");
 const { MongoClient, ObjectId } = require("mongodb");
 
@@ -55,6 +54,11 @@ app.get("/user/:id", async (req, res) => {
   }
 });
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Server running at port ${port}`);
-});
+// Запуск сервера только если index.js запускается напрямую
+if (require.main === module) {
+  app.listen(port, "0.0.0.0", () => {
+    console.log(`Server running at port ${port}`);
+  });
+}
+
+module.exports = app;

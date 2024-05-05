@@ -1,5 +1,5 @@
 const request = require("supertest");
-const app = require("./index.js");
+const app = require("./index");
 
 describe("GET /user/:id", () => {
   it("should return user data for a valid ID", async () => {
