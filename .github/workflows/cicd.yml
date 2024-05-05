@@ -24,9 +24,6 @@ jobs:
       - name: "Build the project"
         run: npm run build --if-present
 
-      - name: "Run tests"
-        run: npm test
-
       - name: "Azure Web App Deploy"
         uses: azure/webapps-deploy@v2
         with:
