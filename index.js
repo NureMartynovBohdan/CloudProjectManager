@@ -7,12 +7,12 @@ const port = 3000;
 const uri =
   "mongodb://azure-cosmos-nure:ZyN4qPZnDeCDoxz39zZuSMdiszr4qreGXE6RANz39ACgtFayCZmvqWNfEEKjeABqgdWmXFhODCaNACDbzO79BA==@azure-cosmos-nure.mongo.cosmos.azure.com:10255/?ssl=true&retrywrites=false&maxIdleTimeMS=120000&appName=@azure-cosmos-nure@";
 
-const client = new MongoClient(uri);
+const client = new MongoClient(uri, { useUnifiedTopology: true });
 
 async function connectDB() {
   try {
     await client.connect();
-    console.log("Підключено к MongoDB");
+    console.log("Подключено к MongoDB");
 
     const database = client.db("CloudProjectManager");
     const users = database.collection("Users");
@@ -23,23 +23,22 @@ async function connectDB() {
       email: "john@example.com",
       role: "Project Manager",
     };
+
     const result = await users.insertOne(newUser);
     console.log(`New user created with the following id: ${result.insertedId}`);
   } catch (e) {
-    console.error("Помилка підключения к БД: ", e);
-  } finally {
-    await client.close();
+    console.error("Ошибка подключения к БД: ", e);
   }
 }
+
 connectDB();
 
-app.get("/", (res) => {
+app.get("/", (req, res) => {
   res.send("Welcome to the Cloud Project Manager!");
 });
 
 app.get("/user/:id", async (req, res) => {
   try {
-    await client.connect();
     const database = client.db("CloudProjectManager");
     const users = database.collection("Users");
 
@@ -47,12 +46,10 @@ app.get("/user/:id", async (req, res) => {
     if (user) {
       res.status(200).json(user);
     } else {
-      res.status(404).send("User не знайден");
+      res.status(404).send("User не найден");
     }
   } catch (e) {
-    res.status(500).send("Помилка підключения к БД: " + e);
-  } finally {
-    await client.close();
+    res.status(500).send("Ошибка подключения к БД: " + e);
   }
 });
 
