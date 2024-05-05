@@ -33,6 +33,8 @@ async function connectDB() {
 
 connectDB();
 
+app.use(express.json());
+
 app.get("/", (req, res) => {
   res.send("Welcome to the Cloud Project Manager!");
 });
@@ -53,6 +55,6 @@ app.get("/user/:id", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+app.listen(port, "0.0.0.0", () => {
   console.log(`Server running at http://localhost:${port}`);
 });
