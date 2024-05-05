@@ -1,32 +1,31 @@
+// const database = client.db("CloudProjectManager");
+// const users = database.collection("Users");
+
+// // const newUser = {
+// //   user_id: new ObjectId(),
+// //   name: "John Doe",
+// //   email: "john@example.com",
+// //   role: "Project Manager",
+// // };
+
+// const result = await users.insertOne(newUser);
+// console.log(`New user created with the following id: ${result.insertedId}`);
+
 const express = require("express");
 const { MongoClient, ObjectId } = require("mongodb");
 
 const app = express();
-// const port = 3000;
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 
 const uri =
   "mongodb://azure-cosmos-nure:ZyN4qPZnDeCDoxz39zZuSMdiszr4qreGXE6RANz39ACgtFayCZmvqWNfEEKjeABqgdWmXFhODCaNACDbzO79BA==@azure-cosmos-nure.mongo.cosmos.azure.com:10255/?ssl=true&retrywrites=false&maxIdleTimeMS=120000&appName=@azure-cosmos-nure@";
 
-const client = new MongoClient(uri, { useUnifiedTopology: true });
+const client = new MongoClient(uri);
 
 async function connectDB() {
   try {
     await client.connect();
     console.log("Подключено к MongoDB");
-
-    // const database = client.db("CloudProjectManager");
-    // const users = database.collection("Users");
-
-    // // const newUser = {
-    // //   user_id: new ObjectId(),
-    // //   name: "John Doe",
-    // //   email: "john@example.com",
-    // //   role: "Project Manager",
-    // // };
-
-    // const result = await users.insertOne(newUser);
-    // console.log(`New user created with the following id: ${result.insertedId}`);
   } catch (e) {
     console.error("Ошибка подключения к БД: ", e);
   }
