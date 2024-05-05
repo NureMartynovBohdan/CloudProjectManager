@@ -1,57 +1,35 @@
-name: Deploy to Azure WebApp
+name: Build and Deploy Node.js App to Azure Web App
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
   workflow_dispatch:
 
-env:
-  AZURE_WEBAPP_NAME: "CloudProjectManagerWeb" # имя вашего веб-приложения
-  AZURE_WEBAPP_PACKAGE_PATH: "." # путь к проекту, по умолчанию корень репозитория
-  NODE_VERSION: "14.x" # версия Node.js
-
-permissions:
-  contents: read
-
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: "Checkout GitHub Action"
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: "Set up Node.js version"
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+          node-version: "20"
 
-      - name: npm install, build, and test
-        run: |
-          npm install
-          npm run build --if-present
-          npm run test --if-present
+      - name: "Install dependencies"
+        run: npm install
 
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v3
-        with:
-          name: node-app
-          path: .
+      - name: "Build the project"
+        run: npm run build --if-present
 
-  deploy:
-    permissions:
-      contents: none
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v3
-        with:
-          name: node-app
+      - name: "Run tests"
+        run: npm test
 
-      - name: "Deploy to Azure WebApp"
-        id: deploy-to-webapp
+      - name: "Azure Web App Deploy"
         uses: azure/webapps-deploy@v2
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+          app-name: "CloudProjectManagerWeb"
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FF677AC0ECB14AD78E54FDE7EB9E1250 }}
+          package: "."
