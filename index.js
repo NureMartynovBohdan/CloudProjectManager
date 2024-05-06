@@ -1,86 +1,65 @@
 const express = require("express");
 const { MongoClient, ObjectId } = require("mongodb");
 const bcrypt = require("bcrypt");
-const bodyParser = require("body-parser");
 
 const app = express();
-const port = process.env.PORT || 3000;
-const saltRounds = 10;
-
+const port = 3000;
 const uri =
   "mongodb://azure-cosmos-nure:ZyN4qPZnDeCDoxz39zZuSMdiszr4qreGXE6RANz39ACgtFayCZmvqWNfEEKjeABqgdWmXFhODCaNACDbzO79BA==@azure-cosmos-nure.mongo.cosmos.azure.com:10255/?ssl=true&retrywrites=false&maxIdleTimeMS=120000&appName=@azure-cosmos-nure@";
+const client = new MongoClient(uri);
 
-let client;
-let database;
-let server;
+app.use(express.json());
 
 async function connectDB() {
   try {
-    client = new MongoClient(uri);
     await client.connect();
-    database = client.db("CloudProjectManager");
-    console.log("Подключено к MongoDB");
+    console.log("Connected to MongoDB");
   } catch (e) {
-    console.error("Ошибка подключения к БД: ", e);
+    console.error("Database connection error:", e);
   }
 }
 
-app.use(express.static("public"));
-app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+connectDB();
 
 app.post("/register", async (req, res) => {
-  const { username, password } = req.body;
-  if (password.length < 8) {
-    return res.status(400).send("Пароль должен содержать не менее 8 символов");
+  try {
+    const { username, password } = req.body;
+    if (!username || !password || password.length < 8) {
+      return res.status(400).send("Invalid username or password");
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await client
+      .db("CloudProjectManager")
+      .collection("Users")
+      .insertOne({ username, password: hashedPassword });
+    res.status(201).send(`User registered with id: ${result.insertedId}`);
+  } catch (e) {
+    console.error("Error registering user:", e);
+    res.status(500).send("Internal server error");
   }
-
-  const users = database.collection("Users");
-  const existingUser = await users.findOne({ username });
-
-  if (existingUser) {
-    return res.status(400).send("Пользователь уже существует");
-  }
-
-  const hashedPassword = await bcrypt.hash(password, saltRounds);
-  await users.insertOne({ username, password: hashedPassword });
-
-  res.status(201).send("Регистрация прошла успешно");
 });
 
 app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-  const users = database.collection("Users");
-  const user = await users.findOne({ username });
-
-  if (!user) {
-    return res.status(401).send("Неверный логин или пароль");
-  }
-
-  const match = await bcrypt.compare(password, user.password);
-  if (match) {
-    res.status(200).send("Успешный вход");
-  } else {
-    res.status(401).send("Неверный логин или пароль");
+  try {
+    const { username, password } = req.body;
+    const user = await client
+      .db("CloudProjectManager")
+      .collection("Users")
+      .findOne({ username });
+    if (!user) {
+      return res.status(401).send("Invalid username or password");
+    }
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).send("Invalid username or password");
+    }
+    res.send("Login successful");
+  } catch (e) {
+    console.error("Error logging in user:", e);
+    res.status(500).send("Internal server error");
   }
 });
 
-if (require.main === module) {
-  (async () => {
-    await connectDB();
-    server = app.listen(port, "0.0.0.0", () => {
-      console.log(`Server running at port ${port}`);
-    });
-  })();
-}
-
-function closeServer() {
-  if (server) {
-    server.close();
-  }
-  if (client) {
-    client.close();
-  }
-}
-
-module.exports = { app, connectDB, closeServer };
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Server running at port ${port}`);
+});
