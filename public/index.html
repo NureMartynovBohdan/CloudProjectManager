@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cloud Project Manager</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"
+    />
+  </head>
+  <body class="bg-gray-100">
+    <div class="container mx-auto py-12">
+      <div class="max-w-md mx-auto bg-white p-8 rounded-md shadow-md">
+        <h1 class="text-2xl font-bold mb-4 text-center">
+          Cloud Project Manager
+        </h1>
+        <div id="message" class="mb-4"></div>
+        <form id="auth-form">
+          <input
+            type="text"
+            id="username"
+            placeholder="Username"
+            class="w-full p-2 mb-2 border rounded-md"
+            required
+          />
+          <input
+            type="password"
+            id="password"
+            placeholder="Password"
+            class="w-full p-2 mb-4 border rounded-md"
+            required
+          />
+          <button
+            id="register"
+            class="w-full py-2 mb-2 bg-blue-500 text-white rounded-md"
+          >
+            Register
+          </button>
+          <button
+            id="login"
+            class="w-full py-2 bg-green-500 text-white rounded-md"
+          >
+            Login
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById("auth-form");
+      const registerButton = document.getElementById("register");
+      const loginButton = document.getElementById("login");
+      const message = document.getElementById("message");
+
+      function showMessage(text, color) {
+        message.innerHTML =
+          '<p class="text-center ' + color + '">' + text + "</p>";
+      }
+
+      function sendRequest(endpoint) {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        })
+          .then((response) => response.text())
+          .then((data) => {
+            showMessage(data, "text-green-500");
+          })
+          .catch((error) => {
+            showMessage("Ошибка: " + error, "text-red-500");
+          });
+      }
+
+      registerButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        sendRequest("/register");
+      });
+
+      loginButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        sendRequest("/login");
+      });
+    </script>
+  </body>
+</html>
