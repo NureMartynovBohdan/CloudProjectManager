@@ -1,65 +1,93 @@
 const express = require("express");
 const { MongoClient, ObjectId } = require("mongodb");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
+const bodyParser = require("body-parser");
 
 const app = express();
-const port = 3000;
-const uri =
-  "mongodb://azure-cosmos-nure:ZyN4qPZnDeCDoxz39zZuSMdiszr4qreGXE6RANz39ACgtFayCZmvqWNfEEKjeABqgdWmXFhODCaNACDbzO79BA==@azure-cosmos-nure.mongo.cosmos.azure.com:10255/?ssl=true&retrywrites=false&maxIdleTimeMS=120000&appName=@azure-cosmos-nure@";
-const client = new MongoClient(uri);
+const port = process.env.PORT || 3000;
+const saltRounds = 10;
 
-app.use(express.json());
+const uri = process.env.MONGODB_URI;
+
+let client;
+let database;
+let server;
 
 async function connectDB() {
   try {
+    client = new MongoClient(uri);
     await client.connect();
-    console.log("Connected to MongoDB");
+    database = client.db("CloudProjectManager");
+    console.log("Подключено к MongoDB");
   } catch (e) {
-    console.error("Database connection error:", e);
+    console.error("Ошибка подключения к БД: ", e);
   }
 }
 
-connectDB();
+app.use(express.static("public"));
+app.use(express.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.post("/register", async (req, res) => {
+  const { username, password } = req.body;
+  if (password.length < 8) {
+    return res.status(400).send("Пароль должен содержать не менее 8 символов");
+  }
+
   try {
-    const { username, password } = req.body;
-    if (!username || !password || password.length < 8) {
-      return res.status(400).send("Invalid username or password");
+    const users = database.collection("Users");
+    const existingUser = await users.findOne({ username });
+
+    if (existingUser) {
+      return res.status(400).send("Пользователь уже существует");
     }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const result = await client
-      .db("CloudProjectManager")
-      .collection("Users")
-      .insertOne({ username, password: hashedPassword });
-    res.status(201).send(`User registered with id: ${result.insertedId}`);
-  } catch (e) {
-    console.error("Error registering user:", e);
-    res.status(500).send("Internal server error");
+
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    await users.insertOne({ username, password: hashedPassword });
+
+    res.status(201).send("Регистрация прошла успешно");
+  } catch (error) {
+    res.status(500).send("Ошибка при регистрации: " + error.message);
   }
 });
 
 app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
   try {
-    const { username, password } = req.body;
-    const user = await client
-      .db("CloudProjectManager")
-      .collection("Users")
-      .findOne({ username });
+    const users = database.collection("Users");
+    const user = await users.findOne({ username });
+
     if (!user) {
-      return res.status(401).send("Invalid username or password");
+      return res.status(401).send("Неверный логин или пароль");
     }
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
-      return res.status(401).send("Invalid username or password");
+
+    const match = await bcrypt.compare(password, user.password);
+    if (match) {
+      res.status(200).send("Успешный вход");
+    } else {
+      res.status(401).send("Неверный логин или пароль");
     }
-    res.send("Login successful");
-  } catch (e) {
-    console.error("Error logging in user:", e);
-    res.status(500).send("Internal server error");
+  } catch (error) {
+    res.status(500).send("Ошибка при входе: " + error.message);
   }
 });
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Server running at port ${port}`);
-});
+if (require.main === module) {
+  (async () => {
+    await connectDB();
+    server = app.listen(port, "0.0.0.0", () => {
+      console.log(`Server running at port ${port}`);
+    });
+  })();
+}
+
+function closeServer() {
+  if (server) {
+    server.close();
+  }
+  if (client) {
+    client.close();
+  }
+}
+
+module.exports = { app, connectDB, closeServer };
